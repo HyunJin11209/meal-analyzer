@@ -1,7 +1,9 @@
 # src/nlp.py
 
-from typing import Dict, List, Set
+from typing import Dict, List
+import re
 from transformers import AutoTokenizer
+from database import NutritionDatabase
 
 print("DEBUG: 코드 실행됨")
 
@@ -11,70 +13,176 @@ def _normalize(text: str) -> str:
     return text.replace(" ", "").lower()
 
 
+def build_food_vocab_from_db(db: NutritionDatabase) -> Dict[str, List[str]]:
+    """
+    NutritionDatabase 안에 들어 있는 음식 이름(key)들로
+    FoodParser에서 사용할 vocab을 자동 생성하는 함수.
+    """
+    vocab: Dict[str, List[str]] = {}
+
+    # 1) 기본: 모든 음식 이름을 '자기 자신'을 동의어로 가지게 함
+    for name in db.db.keys():
+        vocab[name] = [name]
+
+    # 2) 추가 동의어(별명)만 별도로 관리
+    extra_synonyms: Dict[str, List[str]] = {
+
+        
+    }
+
+    for canonical, syns in extra_synonyms.items():
+        if canonical in vocab:
+            vocab[canonical] = list(set(vocab[canonical] + syns))
+
+    return vocab
+
+
 class FoodParser:
-    """
-    HuggingFace 토크나이저를 사용해서
-    문장에서 음식 이름(표준 이름)을 뽑아오는 간단한 파서.
-    """
-
-    def __init__(self, food_vocab: Dict[str, List[str]]) -> None:
+    def __init__(self, food_vocab: Dict[str, List[str]]):
         """
-        food_vocab 예시:
-        {
-            "라면": ["라면", "봉지라면", "컵라면"],
-            "햄버거": ["햄버거", "버거"],
-            ...
-        }
+        food_vocab: {대표 음식 이름: [동의어1, 동의어2, ...]} 형태
         """
-        print("DEBUG 3: 토크나이저 로딩 시작")
+        self.food_vocab = food_vocab
         self.tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
-        print("DEBUG 4: 토크나이저 로딩 완료")
 
-        # "정규화된 표현" -> "표준 음식 이름" 매핑
-        self.synonym_to_canonical: Dict[str, str] = {}
-        for canonical, syn_list in food_vocab.items():
-            # 표준 이름도 포함해서 모두 매핑
-            all_forms = set(syn_list) | {canonical}
-            for form in all_forms:
-                key = _normalize(form)
-                self.synonym_to_canonical[key] = canonical
-
-    def extract_food_names(self, text: str) -> List[str]:
+    def extract_food_names(self, text: str) -> list[str]:
         """
-        문장에서 음식 이름(표준 이름 기준)만 리스트로 추출.
-        지금은 단순히 '동의어 문자열이 문장 안에 포함되어 있는지'로 검사.
-        (나중에 토큰/형태소 기반으로 고도화 가능)
+        1) vocab에 있는 음식/동의어가 문장에 등장하면 매칭
+        2) '김치볶음밥'과 '볶음밥'처럼 포함 관계일 때는
+           더 긴 이름만 남기고 짧은 이름은 제거
         """
-        print("[DEBUG] extract_food_names 호출:", text)
+        print(f"[DEBUG] extract_food_names 호출: {text}")
 
-        found: Set[str] = set()
-        norm_text = _normalize(text)
+        text_clean = text.strip()
 
-        for norm_synonym, canonical in self.synonym_to_canonical.items():
-            if norm_synonym in norm_text:
-                found.add(canonical)
+        # 1. 일단 매칭된 음식 전부 수집
+        matched: list[str] = []
 
-        return sorted(found)
+        for canonical, synonyms in self.food_vocab.items():
+            # 대표 이름도 synonyms에 포함시키기
+            candidates = set(synonyms) | {canonical}
+
+            for cand in candidates:
+                if cand and cand in text_clean:
+                    matched.append(canonical)
+                    break  # 같은 음식은 한 번만 추가
+
+        if not matched:
+            return []
+
+        # 2. 중복 제거 (순서 유지)
+        unique_matched: list[str] = []
+        for food in matched:
+            if food not in unique_matched:
+                unique_matched.append(food)
+
+        # 3. 포함 관계 정리:
+        #    더 긴 이름을 우선으로, 그 안에 포함되는 짧은 이름은 제거
+        result: list[str] = []
+        for food in sorted(unique_matched, key=len, reverse=True):
+            if any(food in longer for longer in result):
+                # 이미 결과에 있는 더 긴 이름 안에 포함되면 skip
+                continue
+            result.append(food)
+
+        return result
+
+    def extract_food_counts(self, text: str) -> dict[str, int]:
+        """
+        문장에서 '음식 이름 + 개수' 형태를 찾아서
+        {대표 음식 이름: 개수} 형태로 반환.
+
+        예:
+          "샐러드 2개랑 파스타 1개 먹었어요"
+            -> {"샐러드": 2, "파스타": 1}
+
+          "오늘 샐러드 먹었어요"
+            -> {"샐러드": 1}  (숫자 없으면 기본 1개로 처리)
+        """
+        print(f"[DEBUG] extract_food_counts 호출: {text}")
+        text_clean = text.strip()
+        counts: dict[str, int] = {}
+
+        # 개수 단위(조사)
+        units = r"(개|그릇|접시|마리|판|줄|조각|공기|컵|인분)?"
+        
+        kor_num_map = {
+            "한": 1,
+            "두": 2,
+            "세": 3,
+            "네": 4,
+            "다섯": 5,
+            "여섯": 6,
+            "일곱": 7,
+            "여덟": 8,
+            "아홉": 9,
+            "열": 10,
+        }
+        kor_num_pattern = "(" + "|".join(kor_num_map.keys()) + ")"
+
+        for canonical, synonyms in self.food_vocab.items():
+            candidates = set(synonyms) | {canonical}
+            total_for_food = 0
+
+            for cand in candidates:
+                if not cand:
+                    continue
+
+                # 숫자가 앞에 오는 경우: "2개 샐러드"
+                pattern_front = rf"(\d+)\s*{units}\s*{re.escape(cand)}"
+                # 숫자가 뒤에 오는 경우: "샐러드 2개"
+                pattern_back = rf"{re.escape(cand)}\s*(\d+)\s*{units}"
+
+                for m in re.finditer(pattern_front, text_clean):
+                    num = int(m.group(1))
+                    total_for_food += num
+
+                for m in re.finditer(pattern_back, text_clean):
+                    num = int(m.group(1))
+                    total_for_food += num
+                
+                pattern_kor_back = rf"{re.escape(cand)}\s*{kor_num_pattern}\s*{units}"
+                for m in re.finditer(pattern_kor_back, text_clean):
+                    kor = m.group(1)
+                    num = kor_num_map.get(kor, 1)
+                    total_for_food += num
+
+            # 숫자를 못 찾았지만 음식 이름이 문장에 있으면 1개로 처리
+            if total_for_food == 0:
+                if any(cand in text_clean for cand in candidates):
+                    total_for_food = 1
+
+            if total_for_food > 0:
+                counts[canonical] = total_for_food
+
+        if not counts:
+            return counts
+
+        # 포함 관계 정리: 더 긴 이름이 있으면 그 안에 포함되는 짧은 이름 제거
+        result: dict[str, int] = {}
+        for food in sorted(counts.keys(), key=len, reverse=True):
+            if any(food in longer for longer in result.keys()):
+                continue
+            result[food] = counts[food]
+
+        return result
 
 
 if __name__ == "__main__":
-    # 예시용 vocab (나중에 JSON/DB에서 불러오도록 수정 예정)
-    example_vocab = {
-        "라면": ["라면", "봉지라면", "컵라면"],
-        "삼각김밥": ["삼각김밥", "삼각 김밥"],
-        "햄버거": ["햄버거", "버거"],
-        "피자": ["피자"],
-    }
+    # 1) 팀원 NutritionDatabase 그대로 사용
+    nutrition_db = NutritionDatabase()   # 기본 path="data/nutrition_db.json"
 
-    print("=== NLP 데모 시작 ===")
-    parser = FoodParser(example_vocab)
+    # 2) DB로부터 FoodParser용 vocab 생성
+    food_vocab = build_food_vocab_from_db(nutrition_db)
+
+    print("=== NLP + Nutrition 데모 시작 ===")
+    parser = FoodParser(food_vocab)
     print("=== FoodParser 준비 완료 ===")
 
     while True:
         try:
             text = input("먹은 음식을 입력하세요 (종료: q): ").strip()
         except EOFError:
-            # 터미널에서 Ctrl+Z 같은 걸로 종료될 때 대비
             print("\nEOF 입력, 종료합니다.")
             break
 
@@ -82,6 +190,15 @@ if __name__ == "__main__":
             print("종료합니다.")
             break
 
-        foods = parser.extract_food_names(text)
-        print("추출된 음식:", foods)
+        # 개수까지 포함해서 파싱
+        food_counts = parser.extract_food_counts(text)
+        print("추출된 음식 및 개수:", food_counts)
+
+        for food, cnt in food_counts.items():
+            info = nutrition_db.get_nutrition(food)
+            if info is not None:
+                print(f" - {food} x{cnt}개 영양정보:", info)
+            else:
+                print(f" - {food} x{cnt}개: 영양정보 없음")
+
         print()
