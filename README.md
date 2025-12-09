@@ -79,7 +79,7 @@ Easy Nutrition (3rd Edition). Soohaksa Publishing, 2011.
 202334437 인공지능학과 김윤서
 - create a Database for food nutrition information including calories/carbs/protein/fat/sodium
 
-202333923 식품생명공학과 김현진  
+202333923 식품생명공학과 김현진 (조장)
 - Evaluation logic based on KDRIs (19–29)  
 - Calorie calculation & macronutrient analysis  
 - Feedback and output generation  
