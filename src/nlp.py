@@ -22,7 +22,7 @@ def build_food_vocab_from_db(db: NutritionDatabase) -> Dict[str, List[str]]:
     vocab: Dict[str, List[str]] = {}
 
     # 1) 기본: 모든 음식 이름을 '자기 자신'을 동의어로 가지게 함
-    for name in db.db.keys():
+    for name in db.data.keys():
         vocab[name] = [name]
 
     # 2) 추가 동의어(별명)만 별도로 관리
