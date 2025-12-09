@@ -1,3 +1,4 @@
+
 # src/nlp.py
 
 from typing import Dict, List
@@ -9,19 +10,25 @@ print("DEBUG: 코드 실행됨")
 
 
 def _normalize(text: str) -> str:
-    """공백 제거 + 소문자로 통일."""
+    """공백 제거 + 소문자로 통일 (매칭용)."""
     return text.replace(" ", "").lower()
 
 
 def build_food_vocab_from_db(db: NutritionDatabase) -> Dict[str, List[str]]:
-    """NutritionDatabase에 있는 음식 이름으로 vocab 생성."""
+    """
+    NutritionDatabase 안에 들어 있는 음식 이름(key)들로
+    FoodParser에서 사용할 vocab을 자동 생성하는 함수.
+    """
     vocab: Dict[str, List[str]] = {}
 
+    # 1) 기본: 모든 음식 이름을 '자기 자신'을 동의어로 가지게 함
     for name in db.db.keys():
         vocab[name] = [name]
 
+    # 2) 추가 동의어(별명)만 별도로 관리
     extra_synonyms: Dict[str, List[str]] = {
-        # 필요하면 여기서만 팀원들과 합의해서 동의어 추가
+
+        
     }
 
     for canonical, syns in extra_synonyms.items():
@@ -34,7 +41,7 @@ def build_food_vocab_from_db(db: NutritionDatabase) -> Dict[str, List[str]]:
 class FoodParser:
     def __init__(self, food_vocab: Dict[str, List[str]]):
         """
-        food_vocab: {대표 음식 이름: [동의어1, 동의어2, ...]}
+        food_vocab: {대표 음식 이름: [동의어1, 동의어2, ...]} 형태
         """
         self.food_vocab = food_vocab
         self.tokenizer = AutoTokenizer.from_pretrained("klue/bert-base")
@@ -48,27 +55,34 @@ class FoodParser:
         print(f"[DEBUG] extract_food_names 호출: {text}")
 
         text_clean = text.strip()
+
+        # 1. 일단 매칭된 음식 전부 수집
         matched: list[str] = []
 
         for canonical, synonyms in self.food_vocab.items():
+            # 대표 이름도 synonyms에 포함시키기
             candidates = set(synonyms) | {canonical}
 
             for cand in candidates:
                 if cand and cand in text_clean:
                     matched.append(canonical)
-                    break
+                    break  # 같은 음식은 한 번만 추가
 
         if not matched:
             return []
 
+        # 2. 중복 제거 (순서 유지)
         unique_matched: list[str] = []
         for food in matched:
             if food not in unique_matched:
                 unique_matched.append(food)
 
+        # 3. 포함 관계 정리:
+        #    더 긴 이름을 우선으로, 그 안에 포함되는 짧은 이름은 제거
         result: list[str] = []
         for food in sorted(unique_matched, key=len, reverse=True):
             if any(food in longer for longer in result):
+                # 이미 결과에 있는 더 긴 이름 안에 포함되면 skip
                 continue
             result.append(food)
 
@@ -76,15 +90,23 @@ class FoodParser:
 
     def extract_food_counts(self, text: str) -> dict[str, int]:
         """
-        문장에서 '음식 이름 + 개수'를 찾아
+        문장에서 '음식 이름 + 개수' 형태를 찾아서
         {대표 음식 이름: 개수} 형태로 반환.
+
+        예:
+          "샐러드 2개랑 파스타 1개 먹었어요"
+            -> {"샐러드": 2, "파스타": 1}
+
+          "오늘 샐러드 먹었어요"
+            -> {"샐러드": 1}  (숫자 없으면 기본 1개로 처리)
         """
         print(f"[DEBUG] extract_food_counts 호출: {text}")
         text_clean = text.strip()
         counts: dict[str, int] = {}
 
+        # 개수 단위(조사)
         units = r"(개|그릇|접시|마리|판|줄|조각|공기|컵|인분)?"
-
+        
         kor_num_map = {
             "한": 1,
             "두": 2,
@@ -107,7 +129,9 @@ class FoodParser:
                 if not cand:
                     continue
 
+                # 숫자가 앞에 오는 경우: "2개 샐러드"
                 pattern_front = rf"(\d+)\s*{units}\s*{re.escape(cand)}"
+                # 숫자가 뒤에 오는 경우: "샐러드 2개"
                 pattern_back = rf"{re.escape(cand)}\s*(\d+)\s*{units}"
 
                 for m in re.finditer(pattern_front, text_clean):
@@ -117,13 +141,14 @@ class FoodParser:
                 for m in re.finditer(pattern_back, text_clean):
                     num = int(m.group(1))
                     total_for_food += num
-
+                
                 pattern_kor_back = rf"{re.escape(cand)}\s*{kor_num_pattern}\s*{units}"
                 for m in re.finditer(pattern_kor_back, text_clean):
                     kor = m.group(1)
                     num = kor_num_map.get(kor, 1)
                     total_for_food += num
 
+            # 숫자를 못 찾았지만 음식 이름이 문장에 있으면 1개로 처리
             if total_for_food == 0:
                 if any(cand in text_clean for cand in candidates):
                     total_for_food = 1
@@ -134,6 +159,7 @@ class FoodParser:
         if not counts:
             return counts
 
+        # 포함 관계 정리: 더 긴 이름이 있으면 그 안에 포함되는 짧은 이름 제거
         result: dict[str, int] = {}
         for food in sorted(counts.keys(), key=len, reverse=True):
             if any(food in longer for longer in result.keys()):
@@ -144,7 +170,10 @@ class FoodParser:
 
 
 if __name__ == "__main__":
-    nutrition_db = NutritionDatabase()
+    # 1) 팀원 NutritionDatabase 그대로 사용
+    nutrition_db = NutritionDatabase()   # 기본 path="data/nutrition_db.json"
+
+    # 2) DB로부터 FoodParser용 vocab 생성
     food_vocab = build_food_vocab_from_db(nutrition_db)
 
     print("=== NLP + Nutrition 데모 시작 ===")
@@ -162,23 +191,15 @@ if __name__ == "__main__":
             print("종료합니다.")
             break
 
+        # 개수까지 포함해서 파싱
         food_counts = parser.extract_food_counts(text)
         print("추출된 음식 및 개수:", food_counts)
-
-        unknown_foods: list[tuple[str, int]] = []
 
         for food, cnt in food_counts.items():
             info = nutrition_db.get_nutrition(food)
             if info is not None:
                 print(f" - {food} x{cnt}개 영양정보:", info)
             else:
-                unknown_foods.append((food, cnt))
-
-        if unknown_foods:
-            names = [f"{name} x{cnt}개" for name, cnt in unknown_foods]
-            joined = ", ".join(names)
-            print(
-                f"* 안내: 다음 음식은 영양 정보 DB에 없어 분석에서 제외되었습니다: {joined}"
-            )
+                print(f" - {food} x{cnt}개: 영양정보 없음")
 
         print()
