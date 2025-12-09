@@ -35,15 +35,18 @@ python -m pip install -r requirements.txt
 ```
 
 ## How to Run
-```bash
+
 1. Clone the repository
+```bash
 git clone https://github.com/HyunJin11209/meal-analyzer.git
 cd meal-analyzer
-
-3. Install required packages
+```
+2. Install required packages
+```bash
 python -m pip install -r requirements.txt
-
-4. Run the application
+```
+3. Run the application
+```bash
 python -m streamlit run src/app.py
 ```
 Once executed, the browser will open automatically.
@@ -65,6 +68,7 @@ Easy Nutrition (3rd Edition). Soohaksa Publishing, 2011.
 2020 Korean Dietary Reference Intakes (KDRIs) included in this textbook.
 
 
+##  Team Members & Roles
 
 202334524 인공지능학과 이충현
 - create a UI that allows users to enter food items and check their calories and nutritional information
@@ -75,15 +79,15 @@ Easy Nutrition (3rd Edition). Soohaksa Publishing, 2011.
 202334437 인공지능학과 김윤서
 - create a Database for food nutrition information including calories/carbs/protein/fat/sodium
 
-202333923 식품생명공학과 김현진
-- Evaluation logic based on KDRIs (19–29)
-- Calorie calculation & macronutrient analysis
-- Feedback and output generation
-- System integration management
-- Repository and project structure organization
-- Execution workflow & dependency setup
-- Coordination across UI, NLP, DB, and evaluation modules
-- End-to-end testing and validation
+202333923 식품생명공학과 김현진  
+- Evaluation logic based on KDRIs (19–29)  
+- Calorie calculation & macronutrient analysis  
+- Feedback and output generation  
+- System integration management  
+- Repository and project structure organization  
+- Execution workflow & dependency setup  
+- Coordination across UI, NLP, DB, and evaluation modules  
+- End-to-end testing and validation  
 
 
 
