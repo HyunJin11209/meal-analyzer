@@ -1,44 +1,35 @@
 import json
 import os
 
-# 프로젝트 기준 경로 자동 계산
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "data.json")
+# nutrition_db.json 경로 자동 설정
+DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "nutrition_db.json")
 
 
-def load_database():
-    """DB 파일을 불러와서 dict로 반환"""
-    if not os.path.exists(DB_PATH):
-        # 파일 없으면 기본 구조 생성
-        save_database({})
-        return {}
+class NutritionDatabase:
+    def __init__(self):
+        self.data = self.load()
 
-    with open(DB_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    def load(self):
+        """nutrition_db.json 불러오기"""
+        if not os.path.exists(DATA_PATH):
+            return {}
+        with open(DATA_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
 
+    def get(self, food_name):
+        """음식 영양정보 반환"""
+        return self.data.get(food_name)
 
-def save_database(data: dict):
-    """dict 데이터를 JSON으로 저장"""
-    with open(DB_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    def search(self, keyword):
+        """키워드 포함하는 음식 리스트 반환"""
+        return {k: v for k, v in self.data.items() if keyword in k}
 
+    def add(self, food_name, values):
+        """새 음식 추가"""
+        self.data[food_name] = values
+        self.save()
 
-def add_item(key, value):
-    """DB에 데이터 추가"""
-    data = load_database()
-    data[key] = value
-    save_database(data)
-
-
-def delete_item(key):
-    """DB에서 항목 삭제"""
-    data = load_database()
-    if key in data:
-        del data[key]
-        save_database(data)
-
-
-def get_item(key):
-    """키 값 하나 조회"""
-    data = load_database()
-    return data.get(key)
+    def save(self):
+        """nutrition_db.json 저장"""
+        with open(DATA_PATH, "w", encoding="utf-8") as f:
+            json.dump(self.data, f, ensure_ascii=False, indent=2)
