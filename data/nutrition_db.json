@@ -88,9 +88,7 @@
   "허니레몬에이드": { "calories": 140, "carbs": 36, "protein": 0, "fat": 0, "sodium": 8 },
   "자몽허브에이드": { "calories": 120, "carbs": 30, "protein": 0, "fat": 0, "sodium": 12 },
   "석류스무디": { "calories": 220, "carbs": 48, "protein": 2, "fat": 1, "sodium": 8 }
-}
 
-{
   "김치찌개": { "calories": 250, "carbs": 15, "protein": 18, "fat": 12, "sodium": 1800 },
   "된장찌개": { "calories": 200, "carbs": 13, "protein": 12, "fat": 8, "sodium": 1600 },
   "부대찌개": { "calories": 550, "carbs": 35, "protein": 25, "fat": 32, "sodium": 2200 },
@@ -125,10 +123,9 @@
   "오므라이스":{ "calories": 750, "carbs": 85, "protein": 25, "fat": 30, "sodium": 1300 },
   "잡채":     { "calories": 350, "carbs": 45, "protein": 10, "fat": 12, "sodium": 850 },
   "김밥":     { "calories": 310, "carbs": 52, "protein": 10, "fat": 8,  "sodium": 850 }
-}
 
 
-{
+
   "설렁탕": { "calories": 420, "carbs": 12, "protein": 32, "fat": 18, "sodium": 1700 },
   "콩나물국밥": { "calories": 480, "carbs": 65, "protein": 22, "fat": 8, "sodium": 1600 },
   "순댓국": { "calories": 550, "carbs": 10, "protein": 35, "fat": 35, "sodium": 1900 },
@@ -216,12 +213,8 @@
   "단팥빵": { "calories": 330, "carbs": 55, "protein": 8, "fat": 7, "sodium": 300 },
   "크림빵": { "calories": 340, "carbs": 45, "protein": 7, "fat": 12, "sodium": 250 },
   "마들렌": { "calories": 130, "carbs": 12, "protein": 2, "fat": 8, "sodium": 70 }
-}
-{
-  "부대찌개": { "calories": 650, "carbs": 35, "protein": 30, "fat": 40, "sodium": 2200 },
-  "갈비탕": { "calories": 550, "carbs": 10, "protein": 38, "fat": 28, "sodium": 1700 },
+
   "추어탕": { "calories": 480, "carbs": 12, "protein": 40, "fat": 18, "sodium": 1600 },
-  "삼계탕": { "calories": 850, "carbs": 10, "protein": 60, "fat": 55, "sodium": 1500 },
   "매운갈비찜": { "calories": 900, "carbs": 45, "protein": 45, "fat": 50, "sodium": 1800 },
   "양념치킨": { "calories": 900, "carbs": 60, "protein": 35, "fat": 55, "sodium": 1300 },
   "간장치킨": { "calories": 850, "carbs": 40, "protein": 35, "fat": 55, "sodium": 1200 },
@@ -232,8 +225,6 @@
   "오삼불고기": { "calories": 650, "carbs": 40, "protein": 28, "fat": 30, "sodium": 1500 },
   "제육덮밥": { "calories": 800, "carbs": 95, "protein": 32, "fat": 25, "sodium": 1400 },
   "불고기덮밥": { "calories": 780, "carbs": 90, "protein": 30, "fat": 20, "sodium": 1300 },
-  "카레라이스": { "calories": 700, "carbs": 110, "protein": 12, "fat": 15, "sodium": 1200 },
-  "감자탕": { "calories": 850, "carbs": 25, "protein": 55, "fat": 45, "sodium": 2100 },
   "동태찌개": { "calories": 350, "carbs": 15, "protein": 30, "fat": 10, "sodium": 1700 },
   "청국장": { "calories": 420, "carbs": 18, "protein": 30, "fat": 20, "sodium": 1800 },
   "오이무침": { "calories": 60, "carbs": 9, "protein": 2, "fat": 2, "sodium": 250 },
@@ -259,8 +250,6 @@
   "참치샌드위치": { "calories": 420, "carbs": 35, "protein": 20, "fat": 18, "sodium": 700 },
   "치킨샐러드": { "calories": 380, "carbs": 15, "protein": 35, "fat": 18, "sodium": 450 },
   "프렌치토스트": { "calories": 320, "carbs": 40, "protein": 12, "fat": 12, "sodium": 300 },
-
-  "참치김밥": { "calories": 500, "carbs": 80, "protein": 18, "fat": 10, "sodium": 1100 },
   "새우김밥": { "calories": 480, "carbs": 78, "protein": 16, "fat": 9, "sodium": 1050 },
   "누드김밥": { "calories": 460, "carbs": 75, "protein": 12, "fat": 8, "sodium": 900 },
   "유부초밥": { "calories": 380, "carbs": 65, "protein": 10, "fat": 8, "sodium": 600 },
