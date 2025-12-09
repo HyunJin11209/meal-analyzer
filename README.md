@@ -7,3 +7,6 @@ A tool that analyzes user meal input to estimate calories, evaluate nutritional 
 
 202334419 인공지능학과 권형진
 - [NLP] Implement food name and quantity extraction from natural language meal descriptions and link with DB to retrieve nutrition information
+
+202334437 인공지능학과 김윤서
+-create a Database for food nutrition information including calories/carbs/protein/fat/sodium
